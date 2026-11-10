@@ -273,7 +273,7 @@ function HomePage({ onNavigate }: { onNavigate: (route: Route) => void }) {
             <span className="action-arrow">
               <ArrowDownRight size={20} />
             </span>
-            <span className="action-caption">Browse the public gallery</span>
+            <span className="action-caption">Flex area</span>
           </motion.button>
           <motion.button
             data-testid="action-blog"
