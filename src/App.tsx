@@ -257,7 +257,7 @@ function HomePage({ onNavigate }: { onNavigate: (route: Route) => void }) {
             <span className="action-arrow">
               <LockKeyhole size={18} />
             </span>
-            <span className="action-caption">My workspace access</span>
+            <span className="action-caption">Admin workspace access</span>
           </motion.button>
           <motion.button
             data-testid="action-projects"
