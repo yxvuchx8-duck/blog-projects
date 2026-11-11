@@ -343,3 +343,8 @@ html.minecraft .theme-toggle { height: 44px; width: 44px; }
 html.minecraft .border-white\/10 { border-color: #000; }
 html.minecraft .border-white\/15, html.minecraft .border-white\/20 { border-color: rgba(0,0,0,.6); }
 html.minecraft footer span, html.minecraft footer { color: #55ff55; }
+html, body, #root {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}

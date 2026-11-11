@@ -142,7 +142,8 @@ export function ProjectsPage({ projects, onNavigate }: { projects: Project[]; on
           <div className="mb-12 flex items-end justify-between border-b border-white/10 pb-6">
             <div>
               <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-[#c7f36b]">Public gallery</p>
-              <h1 className="text-5xl tracking-[-0.06em] sm:text-7xl">
+              <h1 className="text-3xl leading-tight tracking-[-0.06em] sm:text-7xl break-words">
+
                 Recorded projects<span className="text-[#c7f36b]">.</span>
               </h1>
             </div>
