@@ -198,7 +198,8 @@ function HomePage({ onNavigate }: { onNavigate: (route: Route) => void }) {
             <span className="h-1.5 w-1.5 rounded-full bg-[#c7f36b]" />
             Gemer
           </motion.div>
-          <h1 className="max-w-6xl text-[clamp(3.4rem,9vw,9rem)] font-medium leading-[0.9] tracking-[-0.08em] text-[#eff3eb]" data-testid="hero-headline">
+          <h1 className="max-w-6xl text-[clamp(1.75rem,9vw,9rem)] font-medium leading-[1.15] tracking-[-0.08em] text-[#eff3eb] break-words" data-testid="hero-headline">
+
             <RevealLine index={0}>Enough Talent</RevealLine>
             <RevealLine index={1}>
               Can Beat <span className="text-[#c7f36b]">Hardwork</span>
