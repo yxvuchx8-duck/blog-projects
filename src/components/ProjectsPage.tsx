@@ -60,7 +60,8 @@ function PageIndexView({ project, onBack, onOpenPage }: { project: Project; onBa
       <section className="mx-auto max-w-3xl px-6 pb-24 pt-36 sm:px-10" data-testid="page-index-view">
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
           <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-[#c7f36b]">Table of contents</p>
-          <h1 className="text-5xl tracking-[-0.06em] sm:text-6xl" data-testid="index-title">
+          <h1 className="text-2xl leading-tight tracking-[-0.06em] sm:text-6xl break-words [overflow-wrap:anywhere]" data-testid="index-title">
+
             {project.name}
             <span className="text-[#c7f36b]">.</span>
           </h1>
