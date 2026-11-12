@@ -14,6 +14,7 @@ export type LogBlock = {
 export type Page = {
   id: string;
   title: string;
+  sortOrder: number;
   updated_at: string;
   blocks: LogBlock[];
 };
@@ -51,7 +52,7 @@ export function createLogBlock(text = ''): LogBlock {
 }
 
 export function createPage(title = 'Untitled page'): Page {
-  return { id: uid(), title, updated_at: new Date().toISOString(), blocks: [] };
+  return { id: uid(), title, sortOrder: 999, updated_at: new Date().toISOString(), blocks: [] };
 }
 
 export function createProject(name: string): Project {
@@ -93,7 +94,7 @@ export function compressImage(file: File, maxSize = 1100, quality = 0.72): Promi
 }
 
 type ProjectRow = { id: string; name: string; category: string | null; summary: string | null; accent: string | null; cover_photo: string | null; created_at: string };
-type PageRow = { id: string; project_id: string; title: string; updated_at: string };
+type PageRow = { id: string; project_id: string; title: string; sort_order: number | null; updated_at: string };
 type BlockRow = { id: string; page_id: string; type: string; value: { text?: string; images?: InlineImage[] }; position_order: number };
 type PostRow = { id: string; title: string; date_published: string; content_blocks: LogBlock[] | null };
 
@@ -101,7 +102,8 @@ export async function loadWorkspaceFromCloud(): Promise<WorkspaceState> {
   const sb = getSupabase();
   const [projectsRes, pagesRes, blocksRes, postsRes] = await Promise.all([
     sb.from('projects').select('*').order('created_at', { ascending: true }),
-    sb.from('pages').select('*').order('updated_at', { ascending: false }),
+    sb.from('pages').select('*').order('sort_order', { ascending: true }).order('updated_at', { ascending: false }),
+
     sb.from('log_blocks').select('*').order('position_order', { ascending: true }),
     sb.from('blog_posts').select('*').order('date_published', { ascending: false }),
   ]);
@@ -123,6 +125,7 @@ export async function loadWorkspaceFromCloud(): Promise<WorkspaceState> {
       .map((pg) => ({
         id: pg.id,
         title: pg.title,
+        sortOrder: pg.sort_order ?? 999,
         updated_at: pg.updated_at,
         blocks: blocks
           .filter((b) => b.page_id === pg.id)
@@ -146,7 +149,7 @@ function throwIf<T extends { error: { message: string } | null }>(res: T): T {
 async function cloudSavePage(project: Project, page: Page) {
   const sb = getSupabase();
   throwIf(await sb.from('projects').upsert({ id: project.id, name: project.name, category: project.category, summary: project.summary, accent: project.accent, cover_photo: project.coverPhoto, created_at: project.created_at }));
-  throwIf(await sb.from('pages').upsert({ id: page.id, project_id: project.id, title: page.title, updated_at: page.updated_at }));
+  throwIf(await sb.from('pages').upsert({ id: page.id, project_id: project.id, title: page.title, sort_order: page.sortOrder, updated_at: page.updated_at }));
   throwIf(await sb.from('log_blocks').delete().eq('page_id', page.id));
   if (page.blocks.length > 0) {
     throwIf(await sb.from('log_blocks').insert(page.blocks.map((b, i) => ({ id: b.id, page_id: page.id, type: 'text', value: { text: b.text, images: b.images }, position_order: i }))));

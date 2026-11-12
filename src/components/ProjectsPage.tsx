@@ -70,7 +70,7 @@ function PageIndexView({ project, onBack, onOpenPage }: { project: Project; onBa
             {project.pages.length === 0 ? (
               <div className="gallery-empty">This project has no pages yet.</div>
             ) : (
-              project.pages.map((page, index) => (
+              project.pages.slice().sort((a, b) => a.sortOrder - b.sortOrder).map((page, index) => (
                 <button key={page.id} data-testid={`index-page-${page.id}`} onClick={() => onOpenPage(page)} className="index-page-row group">
                   <McIcon kind="sword" size={18} className="mc-only" />
                   <span className="index-page-number">{String(index + 1).padStart(2, '0')}</span>

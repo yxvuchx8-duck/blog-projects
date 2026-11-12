@@ -234,7 +234,7 @@ export function WorkspacePage({ state, setState, sync, storageError, clearStorag
               </div>
               {!project && <p className="workspace-empty-hint">Select a project to see its pages.</p>}
               {project && project.pages.length === 0 && <p className="workspace-empty-hint">No pages yet. Add the first one.</p>}
-              {project?.pages.map((pg) => (
+              {project?.pages.slice().sort((a, b) => a.sortOrder - b.sortOrder).map((pg) => (
                 <div key={pg.id} className={`notebook-item ${pg.id === page?.id ? 'notebook-item-active' : ''}`} data-testid={`page-item-${pg.id}`}>
                   <button className="notebook-item-main" onClick={() => setState({ ...state, activePageId: pg.id })}>
                     <FileText size={13} className="mc-hide" />
@@ -322,7 +322,23 @@ export function WorkspacePage({ state, setState, sync, storageError, clearStorag
             </div>
           ) : (
             <div className="editor-form" data-testid="page-editor-form">
-              <input data-testid="page-title-input" className="editor-page-title" value={page.title} onChange={(e) => updatePage(page.id, (pg) => ({ ...pg, title: e.target.value }))} placeholder="Untitled page" />
+              <div className="flex items-end gap-3">
+                <input data-testid="page-title-input" className="editor-page-title min-w-0 flex-1" value={page.title} onChange={(e) => updatePage(page.id, (pg) => ({ ...pg, title: e.target.value }))} placeholder="Untitled page" />
+                <label className="!mt-0 w-20 shrink-0">
+                  ORDER
+                  <input
+                    data-testid="page-order-input"
+                    type="number"
+                    step="1"
+                    className="!mt-1 !px-2 !py-2 text-sm"
+                    value={page.sortOrder}
+                    onChange={(e) => {
+                      const sortOrder = e.currentTarget.valueAsNumber;
+                      if (Number.isFinite(sortOrder)) updatePage(page.id, (pg) => ({ ...pg, sortOrder }));
+                    }}
+                  />
+                </label>
+              </div>
               <div className="grid gap-5 sm:grid-cols-2">
                 <label>
                   Project name
