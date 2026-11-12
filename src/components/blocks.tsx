@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
 import { compressImage, type InlineImage, type LogBlock } from '@/data/workspace';
 
@@ -62,6 +63,7 @@ export function MarkdownContent({ text }: { text: string }) {
   return (
     <div className="md-content" data-testid="markdown-content">
       <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
         components={{
           code({ className, children, ...props }) {
             const isBlock = /language-/.test(className ?? '');
