@@ -98,14 +98,13 @@ type PageRow = { id: string; project_id: string; title: string; sort_order: numb
 type BlockRow = { id: string; page_id: string; type: string; value: { text?: string; images?: InlineImage[] }; position_order: number };
 type PostRow = { id: string; title: string; date_published: string; content_blocks: LogBlock[] | null };
 
-export async function loadWorkspaceFromCloud(): Promise<WorkspaceState> {
+export async function loadWorkspaceFromCloud({ projects: includeProjects = true, blog = true }: { projects?: boolean; blog?: boolean } = {}): Promise<WorkspaceState> {
   const sb = getSupabase();
   const [projectsRes, pagesRes, blocksRes, postsRes] = await Promise.all([
-    sb.from('projects').select('*').order('created_at', { ascending: true }),
-    sb.from('pages').select('*').order('sort_order', { ascending: true }).order('updated_at', { ascending: false }),
-
-    sb.from('log_blocks').select('*').order('position_order', { ascending: true }),
-    sb.from('blog_posts').select('*').order('date_published', { ascending: false }),
+    includeProjects ? sb.from('projects').select('*').order('created_at', { ascending: true }) : Promise.resolve({ data: [], error: null }),
+    includeProjects ? sb.from('pages').select('*').order('sort_order', { ascending: true }).order('updated_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
+    includeProjects ? sb.from('log_blocks').select('*').order('position_order', { ascending: true }) : Promise.resolve({ data: [], error: null }),
+    blog ? sb.from('blog_posts').select('*').order('date_published', { ascending: false }) : Promise.resolve({ data: [], error: null }),
   ]);
   const err = projectsRes.error ?? pagesRes.error ?? blocksRes.error ?? postsRes.error;
   if (err) throw new Error(err.message);

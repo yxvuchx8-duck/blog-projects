@@ -8,9 +8,9 @@ import { FooterCanvas } from '@/components/FooterCanvas';
 import { WorkspacePage } from '@/components/WorkspacePage';
 import { ProjectsPage } from '@/components/ProjectsPage';
 import { BlogPage } from '@/components/BlogPage';
+import { loadSectionLocks, updateSectionLock, verifyAdminPassword, verifySectionPassword, type Section, type SectionLocks } from '@/data/sectionAccess';
 
 const logo = '/assets/Screenshot_2026-11-10_133726.png';
-const ACCESS_CODE = '1769';
 
 type Route = '/' | '/projects' | '/workspace' | '/blog';
 
@@ -85,18 +85,42 @@ function SplashScreen({ leaving }: { leaving: boolean }) {
   );
 }
 
-function AccessModal({ onClose, onGranted }: { onClose: () => void; onGranted: () => void }) {
+function AccessModal({
+  onClose,
+  onGranted,
+  onSubmit,
+  title = 'Workspace access',
+  description = 'Enter your access code to open the project editor.',
+  submitLabel = 'Unlock workspace',
+}: {
+  onClose: () => void;
+  onGranted: () => void;
+  onSubmit: (code: string) => Promise<boolean>;
+  title?: string;
+  description?: string;
+  submitLabel?: string;
+}) {
   const [code, setCode] = useState('');
   const [denied, setDenied] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (code === ACCESS_CODE) {
-      onGranted();
-      return;
+    setBusy(true);
+    setError('');
+    try {
+      if (await onSubmit(code)) {
+        onGranted();
+        return;
+      }
+      setDenied(true);
+      setCode('');
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Could not verify access.');
+    } finally {
+      setBusy(false);
     }
-    setDenied(true);
-    setCode('');
   }
 
   return (
@@ -110,8 +134,8 @@ function AccessModal({ onClose, onGranted }: { onClose: () => void; onGranted: (
           <McIcon kind="creeper" size={34} className="mc-only" testId="access-creeper" />
         </div>
         <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-[#c7f36b]">Restricted area</p>
-        <h2 id="access-title" className="text-3xl tracking-[-0.05em] text-white">Workspace access</h2>
-        <p className="mt-3 max-w-sm text-sm leading-6 text-[#879797]">Enter your access code to open the project editor.</p>
+        <h2 id="access-title" className="text-3xl tracking-[-0.05em] text-white">{title}</h2>
+        <p className="mt-3 max-w-sm text-sm leading-6 text-[#879797]">{description}</p>
         <form onSubmit={handleSubmit} className="mt-8">
           <label htmlFor="access-code" className="mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] text-[#718080]">
             Access code
@@ -123,22 +147,24 @@ function AccessModal({ onClose, onGranted }: { onClose: () => void; onGranted: (
             id="access-code"
             inputMode="numeric"
             value={code}
+            disabled={busy}
             onChange={(event) => {
               setCode(event.target.value);
               setDenied(false);
+              setError('');
             }}
             className="code-input"
             placeholder="••••"
-            aria-describedby={denied ? 'access-error' : undefined}
+            aria-describedby={denied || error ? 'access-error' : undefined}
           />
-          <button data-testid="access-submit-button" type="submit" className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#c7f36b] px-5 py-3 text-xs font-bold uppercase tracking-wider text-[#162016] transition hover:bg-white">
-            Unlock workspace <ArrowUpRight size={15} />
+          <button data-testid="access-submit-button" type="submit" disabled={busy} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#c7f36b] px-5 py-3 text-xs font-bold uppercase tracking-wider text-[#162016] transition hover:bg-white disabled:cursor-wait disabled:opacity-70">
+            {busy ? 'Checking…' : submitLabel} <ArrowUpRight size={15} />
           </button>
         </form>
-        {denied && (
+        {(denied || error) && (
           <p data-testid="access-error" id="access-error" className="mt-4 flex items-center gap-2 text-xs text-[#f28a6d]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#f28a6d]" />
-            Access Denied
+            {error || 'Access Denied'}
           </p>
         )}
       </div>
@@ -176,7 +202,7 @@ function ParticleStream() {
   );
 }
 
-function HomePage({ onNavigate }: { onNavigate: (route: Route) => void }) {
+function HomePage({ onNavigate, sectionLocks }: { onNavigate: (route: Route) => void; sectionLocks: SectionLocks }) {
   const [accessOpen, setAccessOpen] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
@@ -272,7 +298,7 @@ function HomePage({ onNavigate }: { onNavigate: (route: Route) => void }) {
             <span className="action-index">03</span>
             <span className="action-title">View Projects</span>
             <span className="action-arrow">
-              <ArrowDownRight size={20} />
+              {sectionLocks.isProjectsLocked ? <LockKeyhole size={18} aria-label="Projects locked" /> : <ArrowDownRight size={20} />}
             </span>
             <span className="action-caption">Flex area</span>
           </motion.button>
@@ -288,7 +314,7 @@ function HomePage({ onNavigate }: { onNavigate: (route: Route) => void }) {
             <span className="action-index">04</span>
             <span className="action-title">View Blog</span>
             <span className="action-arrow">
-              <Newspaper size={18} />
+              {sectionLocks.isBlogLocked ? <LockKeyhole size={18} aria-label="Blog locked" /> : <Newspaper size={18} />}
             </span>
             <span className="action-caption">Read the latest posts</span>
           </motion.button>
@@ -303,6 +329,7 @@ function HomePage({ onNavigate }: { onNavigate: (route: Route) => void }) {
         {accessOpen && (
           <AccessModal
             onClose={() => setAccessOpen(false)}
+            onSubmit={verifyAdminPassword}
             onGranted={() => {
               setAccessOpen(false);
               onNavigate('/workspace');
@@ -320,10 +347,70 @@ function App() {
   const [route, setRoute] = useState<Route>(getRoute);
   const [workspace, setWorkspace] = useState<WorkspaceState>({ projects: [], blogPosts: [], activeProjectId: null, activePageId: null, activePostId: null });
   const [storageError, setStorageError] = useState('');
+  const [sectionLocks, setSectionLocks] = useState<SectionLocks | null>(null);
+  const [sectionLocksError, setSectionLocksError] = useState('');
+  const [unlockedSection, setUnlockedSection] = useState<Section | null>(null);
 
   useEffect(() => {
-    loadWorkspaceFromCloud().then(setWorkspace).catch((e: Error) => setStorageError(`Could not reach the cloud database: ${e.message}`));
+    let cancelled = false;
+    const refreshLocks = () => {
+      loadSectionLocks()
+        .then((locks) => {
+          if (cancelled) return;
+          setSectionLocks(locks);
+          setSectionLocksError('');
+        })
+        .catch((error: Error) => {
+          if (cancelled) return;
+          setSectionLocks(null);
+          setSectionLocksError(error.message);
+        });
+    };
+    refreshLocks();
+    const timer = window.setInterval(refreshLocks, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, []);
+
+  const canLoadWorkspace = route === '/workspace'
+    || (route === '/projects' && sectionLocks !== null && (!sectionLocks.isProjectsLocked || unlockedSection === 'projects'))
+    || (route === '/blog' && sectionLocks !== null && (!sectionLocks.isBlogLocked || unlockedSection === 'blog'));
+
+  useEffect(() => {
+    if (!canLoadWorkspace) return;
+    let cancelled = false;
+    loadWorkspaceFromCloud({ projects: route !== '/blog', blog: route !== '/projects' })
+      .then((next) => {
+        if (!cancelled) setWorkspace(next);
+      })
+      .catch((error: Error) => {
+        if (!cancelled) setStorageError(`Could not reach the cloud database: ${error.message}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canLoadWorkspace, route]);
+
+  async function changeSectionLock(section: Section, locked: boolean): Promise<boolean> {
+    try {
+      setSectionLocksError('');
+      setSectionLocks(await updateSectionLock(section, locked));
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not update section visibility.';
+      setSectionLocksError(message);
+      return false;
+    }
+  }
+
+  async function unlockSection(section: Section, password: string): Promise<boolean> {
+    const unlocked = await verifySectionPassword(section, password);
+    if (!unlocked) return false;
+    setUnlockedSection(section);
+    return true;
+  }
 
   async function sync(action: SyncAction): Promise<boolean> {
     try {
@@ -352,7 +439,10 @@ function App() {
   useEffect(() => {
     const exitTimer = window.setTimeout(() => setLeaving(true), 2100);
     const hideTimer = window.setTimeout(() => setShowSplash(false), 2700);
-    const handlePopState = () => setRoute(getRoute());
+    const handlePopState = () => {
+      setUnlockedSection(null);
+      setRoute(getRoute());
+    };
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.clearTimeout(exitTimer);
@@ -363,15 +453,36 @@ function App() {
 
   function navigate(nextRoute: Route) {
     window.history.pushState({}, '', nextRoute);
+    setUnlockedSection(null);
     setRoute(nextRoute);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
   if (showSplash) return <SplashScreen leaving={leaving} />;
-  if (route === '/projects') return <ProjectsPage projects={workspace.projects} onNavigate={navigate} />;
-  if (route === '/blog') return <BlogPage posts={workspace.blogPosts} onNavigate={navigate} />;
-  if (route === '/workspace') return <WorkspacePage state={workspace} setState={setWorkspace} sync={sync} storageError={storageError} clearStorageError={() => setStorageError('')} onNavigate={navigate} />;
-  return <HomePage onNavigate={navigate} />;
+  if ((route === '/projects' || route === '/blog') && !sectionLocks) {
+    return (
+      <main className="min-h-screen bg-[#111818] px-6 pt-36 text-[#eef2eb]">
+        <p className="mx-auto max-w-xl text-sm leading-6 text-[#879797]" role="status">
+          {sectionLocksError ? `Could not check section access: ${sectionLocksError}` : 'Checking section access…'}
+        </p>
+        {sectionLocksError && <button className="mx-auto mt-5 block text-sm text-[#c7f36b]" onClick={() => navigate('/')}>Back to home</button>}
+      </main>
+    );
+  }
+  if (route === '/projects' && sectionLocks) {
+    if (sectionLocks.isProjectsLocked && unlockedSection !== 'projects') {
+      return <AccessModal onClose={() => navigate('/')} onSubmit={(password) => unlockSection('projects', password)} onGranted={() => undefined} title="Projects access" description="This project gallery is locked. Enter the access code to continue." submitLabel="Unlock projects" />;
+    }
+    return <ProjectsPage projects={workspace.projects} onNavigate={navigate} />;
+  }
+  if (route === '/blog' && sectionLocks) {
+    if (sectionLocks.isBlogLocked && unlockedSection !== 'blog') {
+      return <AccessModal onClose={() => navigate('/')} onSubmit={(password) => unlockSection('blog', password)} onGranted={() => undefined} title="Blog access" description="This blog is locked. Enter the access code to continue." submitLabel="Unlock blog" />;
+    }
+    return <BlogPage posts={workspace.blogPosts} onNavigate={navigate} />;
+  }
+  if (route === '/workspace') return <WorkspacePage state={workspace} setState={setWorkspace} sync={sync} storageError={storageError} clearStorageError={() => setStorageError('')} sectionLocks={sectionLocks} sectionLocksError={sectionLocksError} onSectionLockChange={changeSectionLock} onNavigate={navigate} />;
+  return <HomePage onNavigate={navigate} sectionLocks={sectionLocks ?? { isProjectsLocked: false, isBlogLocked: false }} />;
 }
 
 export default App;

@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import { ArrowLeft, FolderKanban, FileText, ImagePlus, Newspaper, Plus, Save, Trash2, X } from 'lucide-react';
+import { ArrowLeft, FolderKanban, FileText, ImagePlus, LockKeyhole, Newspaper, Plus, Save, Trash2, UnlockKeyhole, X } from 'lucide-react';
 import { LogBlockEditor } from '@/components/blocks';
 import { FloatingHeader, McIcon } from '@/components/Header';
 import { compressImage, createBlogPost, createLogBlock, createPage, createProject, findPage, type BlogPost, type Page, type Project, type SyncAction, type WorkspaceState } from '@/data/workspace';
+import type { Section, SectionLocks } from '@/data/sectionAccess';
 
 const accentKeys = ['cyan', 'lime', 'amber', 'blue'];
 type Space = 'projects' | 'blog';
@@ -13,17 +14,33 @@ type Props = {
   sync: (action: SyncAction) => Promise<boolean>;
   storageError: string;
   clearStorageError: () => void;
+  sectionLocks: SectionLocks | null;
+  sectionLocksError: string;
+  onSectionLockChange: (section: Section, locked: boolean) => Promise<boolean>;
   onNavigate: (route: '/' | '/projects' | '/workspace' | '/blog') => void;
 };
 
-export function WorkspacePage({ state, setState, sync, storageError, clearStorageError, onNavigate }: Props) {
+export function WorkspacePage({ state, setState, sync, storageError, clearStorageError, sectionLocks, sectionLocksError, onSectionLockChange, onNavigate }: Props) {
   const [space, setSpace] = useState<Space>('projects');
   const [message, setMessage] = useState('');
   const [coverBusy, setCoverBusy] = useState(false);
+  const [lockBusy, setLockBusy] = useState<Record<Section, boolean>>({ projects: false, blog: false });
   const coverInput = useRef<HTMLInputElement>(null);
   const project = state.projects.find((p) => p.id === state.activeProjectId);
   const page = findPage(state);
   const post = state.blogPosts.find((p) => p.id === state.activePostId);
+
+  async function toggleSectionLock(section: Section) {
+    if (!sectionLocks || lockBusy[section]) return;
+    const locked = section === 'projects' ? sectionLocks.isProjectsLocked : sectionLocks.isBlogLocked;
+    setLockBusy((current) => ({ ...current, [section]: true }));
+    try {
+      const saved = await onSectionLockChange(section, !locked);
+      flash(saved ? `${section === 'projects' ? 'Projects' : 'Blog'} ${locked ? 'unlocked' : 'locked'} for visitors.` : 'Could not save this visibility change. Check the error above.');
+    } finally {
+      setLockBusy((current) => ({ ...current, [section]: false }));
+    }
+  }
 
   function flash(text: string) {
     setMessage(text);
@@ -140,6 +157,44 @@ export function WorkspacePage({ state, setState, sync, storageError, clearStorag
       />
 
       <div className="workspace-layout mx-auto max-w-[1400px] px-4 pb-16 pt-28 sm:px-8">
+        <section className="section-lock-controls" aria-labelledby="section-lock-title" data-testid="section-lock-controls">
+          <div className="section-lock-intro">
+            <p className="section-lock-eyebrow">Public access</p>
+            <h2 id="section-lock-title">Section visibility</h2>
+            <p>Lock a section to require the visitor access code.</p>
+          </div>
+          <div className="section-lock-options">
+            {([
+              { key: 'projects' as const, label: 'Lock Projects', locked: sectionLocks?.isProjectsLocked },
+              { key: 'blog' as const, label: 'Lock Blog', locked: sectionLocks?.isBlogLocked },
+            ]).map(({ key, label, locked }) => (
+              <div className={`section-lock-option ${locked ? 'is-locked' : ''}`} key={key}>
+                <div>
+                  <span className="section-lock-label">{label}</span>
+                  <span className="section-lock-status" data-testid={`section-lock-status-${key}`}>
+                    {sectionLocks ? locked ? 'Locked for visitors' : 'Publicly accessible' : 'Loading status…'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={Boolean(locked)}
+                  aria-label={label}
+                  data-testid={`section-lock-toggle-${key}`}
+                  disabled={!sectionLocks || lockBusy[key]}
+                  onClick={() => void toggleSectionLock(key)}
+                  className="section-lock-switch"
+                >
+                  <span className="section-lock-switch-thumb">
+                    {locked ? <LockKeyhole size={12} /> : <UnlockKeyhole size={12} />}
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+          {sectionLocksError && <p className="section-lock-error" role="alert">Could not load or update section locks: {sectionLocksError}</p>}
+        </section>
+
         <aside className="workspace-col" data-testid="project-rail">
           <div className="workspace-col-head">
             <span className="mc-heading">{editingBlog ? 'Blog Space' : 'Projects'}</span>
