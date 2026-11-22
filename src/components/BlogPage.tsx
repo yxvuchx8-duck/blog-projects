@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Newspaper } from 'lucide-react';
 import { LogBlockView } from '@/components/blocks';
@@ -6,6 +7,78 @@ import type { BlogPost } from '@/data/workspace';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function BlogPostCard({ post, index }: { post: BlogPost; index: number }) {
+  const postRef = useRef<HTMLElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  useEffect(() => {
+    const measureOverflow = () => {
+      const body = bodyRef.current;
+      if (!body) return;
+
+      if (expanded) {
+        body.classList.replace('line-clamp-none', 'line-clamp-6');
+      }
+      setHasOverflow(body.scrollHeight > body.clientHeight);
+      if (expanded) {
+        body.classList.replace('line-clamp-6', 'line-clamp-none');
+      }
+    };
+
+    measureOverflow();
+    window.addEventListener('resize', measureOverflow);
+    return () => window.removeEventListener('resize', measureOverflow);
+  }, [expanded, post.blocks]);
+
+  function toggleExpanded() {
+    if (expanded) {
+      setExpanded(false);
+      postRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    setExpanded(true);
+  }
+
+  return (
+    <motion.article
+      ref={postRef}
+      className="blog-post"
+      data-testid={`blog-post-${post.id}`}
+      initial={{ opacity: 0, y: 26 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ delay: index === 0 ? 0.1 : 0, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+    >
+      <div className="blog-post-head">
+        <span className="blog-post-date" data-testid={`blog-date-${post.id}`}>
+          <Newspaper size={13} className="mc-hide" />
+          {formatDate(post.datePublished)}
+        </span>
+        <h2 className="blog-post-title" data-testid={`blog-title-${post.id}`}>
+          {post.title || 'Untitled post'}
+          <span className="text-[#c7f36b]">.</span>
+        </h2>
+      </div>
+      <div ref={bodyRef} className={`detail-blocks mt-8 space-y-10 ${expanded ? 'line-clamp-none' : 'line-clamp-6'}`}>
+        {post.blocks.length === 0 ? <p className="workspace-empty-hint">This post has no content yet.</p> : post.blocks.map((block) => <LogBlockView key={block.id} block={block} />)}
+      </div>
+      {hasOverflow && (
+        <button
+          type="button"
+          className="blog-post-toggle"
+          data-testid={`blog-toggle-${post.id}`}
+          aria-expanded={expanded}
+          onClick={toggleExpanded}
+        >
+          {expanded ? 'See Less' : 'See More'}
+        </button>
+      )}
+    </motion.article>
+  );
 }
 
 export function BlogPage({ posts, onNavigate }: { posts: BlogPost[]; onNavigate: (route: '/' | '/projects' | '/workspace' | '/blog') => void }) {
@@ -37,31 +110,7 @@ export function BlogPage({ posts, onNavigate }: { posts: BlogPost[]; onNavigate:
           </div>
         ) : (
           <div className="blog-timeline" data-testid="blog-feed">
-            {sorted.map((post, index) => (
-              <motion.article
-                key={post.id}
-                className="blog-post"
-                data-testid={`blog-post-${post.id}`}
-                initial={{ opacity: 0, y: 26 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-40px' }}
-                transition={{ delay: index === 0 ? 0.1 : 0, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <div className="blog-post-head">
-                  <span className="blog-post-date" data-testid={`blog-date-${post.id}`}>
-                    <Newspaper size={13} className="mc-hide" />
-                    {formatDate(post.datePublished)}
-                  </span>
-                  <h2 className="blog-post-title" data-testid={`blog-title-${post.id}`}>
-                    {post.title || 'Untitled post'}
-                    <span className="text-[#c7f36b]">.</span>
-                  </h2>
-                </div>
-                <div className="detail-blocks mt-8 space-y-10">
-                  {post.blocks.length === 0 ? <p className="workspace-empty-hint">This post has no content yet.</p> : post.blocks.map((block) => <LogBlockView key={block.id} block={block} />)}
-                </div>
-              </motion.article>
-            ))}
+            {sorted.map((post, index) => <BlogPostCard key={post.id} post={post} index={index} />)}
           </div>
         )}
       </section>

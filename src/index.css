@@ -236,6 +236,9 @@ html.light .index-page-arrow { color: #4d7c17; }
 .blog-post::before { position: absolute; left: -27px; top: 9px; height: 11px; width: 11px; border-radius: 9999px; content: ''; background: #c7f36b; box-shadow: 0 0 0 4px rgba(199,243,107,.12); }
 .blog-post-head .blog-post-date { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #718080; }
 .blog-post-title { margin-top: 12px; font-size: clamp(1.9rem, 4vw, 2.9rem); letter-spacing: -.05em; color: #eff3eb; }
+.blog-post-toggle { display: inline-flex; align-items: center; justify-content: center; margin-top: 24px; border: 1px solid rgba(199,243,107,.35); border-radius: 9999px; background: rgba(199,243,107,.08); padding: 9px 16px; color: #c7f36b; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; transition: background 180ms ease, border-color 180ms ease, color 180ms ease; }
+.blog-post-toggle:hover { border-color: rgba(199,243,107,.7); background: rgba(199,243,107,.16); }
+.blog-post-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
 .workspace-space-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
 .workspace-space-toggle button { display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); padding: 9px 6px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #718080; transition: border-color 200ms ease, color 200ms ease, background 200ms ease; }
@@ -248,6 +251,8 @@ html.light .workspace-space-toggle .space-tab-active { border-color: rgba(77,124
 html.light .blog-timeline::before { background: linear-gradient(to bottom, rgba(77,124,23,.5), rgba(22,33,26,.1)); }
 html.light .blog-post::before { background: #4d7c17; box-shadow: 0 0 0 4px rgba(77,124,23,.12); }
 html.light .blog-post-title { color: #16211a; }
+html.light .blog-post-toggle { border-color: rgba(77,124,23,.35); background: rgba(77,124,23,.08); color: #4d7c17; }
+html.light .blog-post-toggle:hover { border-color: rgba(77,124,23,.7); background: rgba(77,124,23,.15); }
 
 /* ============ MINECRAFT THEME ============ */
 .mc-icon { display: none; image-rendering: pixelated; flex-shrink: 0; }
@@ -309,7 +314,8 @@ html.minecraft .blog-post-title { color: #b38900; text-shadow: 2px 2px 0 rgba(0,
 html.minecraft .blog-post .md-content { color: #1e1e1e; }
 html.minecraft .blog-post .md-content strong { color: #b38900; text-shadow: 1px 1px 0 rgba(0,0,0,.15); }
 html.minecraft .blog-post .md-content h1, html.minecraft .blog-post .md-content h2, html.minecraft .blog-post .md-content h3 { color: #b38900; text-shadow: 2px 2px 0 rgba(0,0,0,.2); }
-
+html.minecraft .blog-post-toggle { border-color: #212121 #8b8b8b #8b8b8b #212121; border-radius: 0; background: #4a4a4a; color: #ffff55; font-family: 'VT323', monospace; font-size: 18px; text-shadow: 1px 1px 0 rgba(0,0,0,.55); }
+html.minecraft .blog-post-toggle:hover { border-color: #ffffff; background: #4a4a4a; color: #55ff55; text-shadow: 2px 2px 0 rgba(0,0,0,.75); }
 html.minecraft .action-card { border: 3px solid; border-color: #8b8b8b #212121 #212121 #8b8b8b; border-radius: 0; box-shadow: inset 0 0 0 2px rgba(0,0,0,.55), 0 6px 0 rgba(0,0,0,.4); background: #313131; }
 html.minecraft .action-card.action-cyan, html.minecraft .action-card.action-cyan:hover { background: #1a4d4a; }
 html.minecraft .action-card.action-lime, html.minecraft .action-card.action-lime:hover { background: #2e4d1a; }
